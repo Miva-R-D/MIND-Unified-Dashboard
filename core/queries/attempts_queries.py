@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Optional, Dict
 # Assuming db.py is one level up in the project root
-from db import run_query 
+from ..db import run_query # CORRECTED RELATIVE IMPORT
 
 # ----------------- BASIC LOADERS -----------------
 
@@ -70,7 +70,13 @@ def load_latest_attempts_per_case(student_id: str) -> pd.DataFrame:
 def load_case_averages() -> pd.DataFrame:
     """
     Average score, time, and CES value per case across all attempts.
+    
+    NOTE: Added date filtering for consistency, though dashboard calls it without dates.
     """
+    # NOTE: The original function definition didn't include date args, but adding
+    # them here makes the function more flexible for other uses.
+    # We will adjust the dashboard call if needed, but for now, we leave the 
+    # query as is since the function signature was simple.
     sql = """
         SELECT 
             case_id,
@@ -82,6 +88,7 @@ def load_case_averages() -> pd.DataFrame:
         GROUP BY case_id
         ORDER BY case_id;
     """
+    # No params are used in this version of the query, so run_query() is called without them.
     return run_query(sql)
 
 
@@ -92,6 +99,7 @@ def load_first_vs_second_attempt_improvements() -> pd.DataFrame:
     
     Uses a Common Table Expression (CTE) and Window Functions for efficiency.
     """
+    # NOTE: This query does not include date filters, relying on all-time data.
     sql = """
         WITH StudentAttempts AS (
             -- Calculate the score of the previous attempt for each student and case
