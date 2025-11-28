@@ -5,4 +5,5 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 numpy
-pyjwt
+bcrypt         # <--- ADDED for secure password hashing
+# pyjwt        # <--- OPTIONAL: Removed/Commented out if JWT is not yet active
