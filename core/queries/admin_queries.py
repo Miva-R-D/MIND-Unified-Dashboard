@@ -99,3 +99,65 @@ def average_score(start_date: Optional[str] = None, end_date: Optional[str] = No
     }
     
     return run_query(sql, params)
+
+
+# ------------------ MISSING FACULTY/ADMIN SUMMARIES ------------------
+
+def case_study_summary(start_date: Optional[str] = None, end_date: Optional[str] = None) -> pd.DataFrame:
+    """
+    Summary of performance metrics per case study, filtered by date.
+    """
+    sql = """
+        SELECT
+            a.case_id,
+            COUNT(a.attempt_id) AS total_attempts,
+            COUNT(DISTINCT a.student_id) AS total_students,
+            AVG(a.score)::numeric(10,2) AS avg_score,
+            AVG(a.duration_seconds)::numeric(10,2) AS avg_duration_sec
+        FROM attempts a
+        WHERE a.timestamp >= :start AND a.timestamp <= :end
+        GROUP BY a.case_id
+        ORDER BY avg_score DESC;
+    """
+    params = {
+        "start": f"{start_date} 00:00:00" if start_date else "1900-01-01 00:00:00",
+        "end": f"{end_date} 23:59:59" if end_date else "2999-12-31 23:59:59"
+    }
+    return run_query(sql, params)
+
+
+def campus_summary() -> pd.DataFrame:
+    """
+    Loads global aggregate campus performance metrics (assumed pre-computed or joined).
+    Since no date filter is passed in the dashboard, this loads the current global state.
+    Assumes a pre-computed table named 'campus_metrics' or similar.
+    """
+    sql = """
+        SELECT 
+            campus_name, 
+            avg_score::numeric(10,2), 
+            active_students, 
+            last_updated 
+        FROM campus_metrics
+        ORDER BY active_students DESC;
+    """
+    # NOTE: This query does not use date filters as the Faculty Dashboard called it without them.
+    return run_query(sql)
+
+
+def department_summary() -> pd.DataFrame:
+    """
+    Loads global aggregate department performance metrics. 
+    Assumes a pre-computed table named 'department_metrics'.
+    """
+    sql = """
+        SELECT 
+            department_name, 
+            avg_mastery::numeric(10,4), 
+            total_students, 
+            last_updated 
+        FROM department_metrics
+        ORDER BY avg_mastery DESC;
+    """
+    # NOTE: This query does not use date filters as the Faculty Dashboard called it without them.
+    return run_query(sql)
