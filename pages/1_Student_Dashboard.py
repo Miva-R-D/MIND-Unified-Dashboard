@@ -1,239 +1,375 @@
+"""
+Student Dashboard - Personal Performance Analytics
+View scores, rubric feedback, engagement, and progress
+"""
+
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+import plotly.express as px
+from datetime import datetime, timedelta
 
-from core.auth import role_guard, logout_button
-from core.theme import apply_theme
-from core.utils import (
-    date_range_picker, join_case_titles, sort_by_timestamp, 
-    is_empty, to_float
-)
+from auth import require_auth, get_student_id, get_current_user
+from theme import apply_streamlit_theme, COLORS
+from db import init_database
 from core.components import (
-    section_header, kpi_row,
-    plot_line, plot_bar, plot_hist, plot_scatter, show_empty
+    render_kpi_card, render_metric_grid, create_line_chart, create_bar_chart,
+    create_scatter_plot, create_histogram, render_data_table, create_gauge_chart
 )
-
-# QUERY IMPORTS
+from core.utils import (
+    format_number, format_percentage, format_duration, get_date_range_filter,
+    calculate_rubric_mastery
+)
 from core.queries.attempts_queries import (
-    load_attempts_for_student,
-    load_latest_attempts_per_case
+    get_student_attempts, get_student_performance_summary,
+    get_attempt_improvement, get_score_trend
 )
-from core.queries.engagement_queries import load_engagement_for_student
-from core.queries.environment_queries import load_environment_for_student
-from core.queries.rubric_queries import load_rubric_scores_for_student
-from core.queries.meta_queries import load_case_metadata # NEW IMPORT
+from core.queries.rubric_queries import (
+    get_student_rubric_scores, get_rubric_mastery_by_dimension
+)
+from core.queries.engagement_queries import (
+    get_student_engagement, get_student_active_days,
+    get_engagement_summary_by_student, get_daily_engagement_trend,
+    get_engagement_by_action_type
+)
 
-# --------------------------- PAGE SETUP ---------------------------
+# Page config
+st.set_page_config(
+    page_title="Student Dashboard - MIND",
+    page_icon="👨‍🎓",
+    layout="wide"
+)
 
-apply_theme()
-# Check authentication and enforce Student role
-user_role, username = role_guard("Student") 
+# Apply theme
+st.markdown(apply_streamlit_theme(), unsafe_allow_html=True)
 
-st.title("🎓 Student Dashboard")
-st.caption(f"Welcome, **{username}**")
+# Require authentication
+require_auth(allowed_roles=["Student", "Admin"])
 
-logout_button()
+# Get user info
+user = get_current_user()
+student_id = user.get('student_id') or 'STU001'  # Fallback for admin viewing
+
+# Initialize database
+db = init_database()
+
+# Header
+st.markdown("# 👨‍🎓 Student Dashboard")
+st.markdown(f"### Welcome back, {user['name']}!")
+st.markdown("---")
+
+# Date filter in sidebar
+with st.sidebar:
+    st.markdown("### 📅 Filters")
+    
+    date_range_option = st.selectbox(
+        "Time Period",
+        ["Last 7 Days", "Last 30 Days", "Last 90 Days", "All Time", "Custom Range"]
+    )
+    
+    if date_range_option == "Custom Range":
+        start_date, end_date = get_date_range_filter(default_days=30)
+    else:
+        days_map = {
+            "Last 7 Days": 7,
+            "Last 30 Days": 30,
+            "Last 90 Days": 90,
+            "All Time": 3650
+        }
+        days = days_map[date_range_option]
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+    
+    st.markdown("---")
+    st.markdown("### 📊 View Options")
+    show_details = st.checkbox("Show Detailed Tables", value=True)
+
+# ============================================
+# KEY PERFORMANCE INDICATORS
+# ============================================
+
+st.markdown("## 📊 Key Performance Indicators")
+
+# Fetch performance summary
+summary_query = get_student_performance_summary(student_id)
+summary_df = db.execute_query_df(summary_query)
+
+if not summary_df.empty:
+    summary = summary_df.iloc[0]
+    
+    # Calculate additional metrics
+    active_days_query = get_student_active_days(student_id)
+    active_days_df = db.execute_query_df(active_days_query)
+    active_days = active_days_df.iloc[0]['active_days'] if not active_days_df.empty else 0
+    
+    # Engagement summary
+    engagement_query = get_engagement_summary_by_student(student_id)
+    engagement_df = db.execute_query_df(engagement_query)
+    
+    total_duration = 0
+    if not engagement_df.empty:
+        total_duration = engagement_df.iloc[0]['total_duration_seconds']
+    
+    # Rubric mastery
+    rubric_query = get_rubric_mastery_by_dimension(student_id)
+    rubric_df = db.execute_query_df(rubric_query)
+    avg_rubric_mastery = rubric_df['avg_percentage'].mean() if not rubric_df.empty else 0
+    
+    # Display KPI cards
+    metrics = [
+        {
+            'title': 'Cases Attempted',
+            'value': int(summary['total_cases_attempted']),
+            'accent': False
+        },
+        {
+            'title': 'Average Score',
+            'value': f"{summary['avg_score']:.1f}%",
+            'accent': True
+        },
+        {
+            'title': 'Average CES',
+            'value': f"{summary['avg_ces']:.1f}",
+            'accent': False
+        },
+        {
+            'title': 'Avg Time on Task',
+            'value': format_duration(int(summary['avg_duration'])),
+            'accent': False
+        },
+        {
+            'title': 'Active Days',
+            'value': int(active_days),
+            'accent': False
+        },
+        {
+            'title': 'Total Engagement Time',
+            'value': format_duration(int(total_duration)),
+            'accent': False
+        },
+        {
+            'title': 'Rubric Mastery',
+            'value': f"{avg_rubric_mastery:.1f}%",
+            'accent': True
+        },
+        {
+            'title': 'Best Score',
+            'value': f"{summary['max_score']:.0f}%",
+            'accent': False
+        }
+    ]
+    
+    render_metric_grid(metrics, columns=4)
+
+else:
+    st.info("No performance data available yet. Complete some case studies to see your metrics!")
 
 st.markdown("---")
 
+# ============================================
+# CHARTS SECTION
+# ============================================
 
-# --------------------------- DATE FILTER ---------------------------
+st.markdown("## 📈 Performance Analytics")
 
-# Returns date strings ('YYYY-MM-DD') or None
-start_date, end_date = date_range_picker() 
-if not start_date or not end_date:
-    st.stop()
+col1, col2 = st.columns(2)
 
-
-# --------------------------- LOAD DATA ---------------------------
-
-# Use st.cache_data for static or expensive-to-load reference data
-@st.cache_data(ttl=3600)
-def get_metadata():
-    """Load case metadata once and cache it."""
-    return load_case_metadata()
-
-case_metadata_df = get_metadata()
-
-# Attempts (Core Data) - Filtered by date
-attempts_df = load_attempts_for_student(username, start_date, end_date)
-# Apply necessary casting and join title
-attempts_df = to_float(attempts_df, "score")
-attempts_df = to_float(attempts_df, "duration_seconds")
-attempts_df = join_case_titles(attempts_df, case_metadata_df)
-
-
-# Engagement - Filtered by date
-eng_df = load_engagement_for_student(username, start_date, end_date)
-
-# Environment - Filtered by date
-env_df = load_environment_for_student(username, start_date, end_date) # ADDED DATE FILTER
-
-# Latest attempt per case (for KPIs) - Unfiltered by date for true latest state
-latest_attempts = load_latest_attempts_per_case(username) 
-latest_attempts = to_float(latest_attempts, "score")
-
-# Rubric - Filtered by date
-rubric_df = load_rubric_scores_for_student(username, start_date, end_date) # ADDED DATE FILTER
-rubric_df = join_case_titles(rubric_df, case_metadata_df)
-
-
-# --------------------------- VALIDATION ---------------------------
-
-if is_empty(attempts_df):
-    st.warning("No attempts found for the selected date range.")
-    show_empty("Try selecting a wider date range.")
-    st.stop()
-
-# --------------------------- KPI SECTION ---------------------------
-
-section_header("🎯 Your Learning Summary")
-
-total_cases = attempts_df["case_id"].nunique()
-total_attempts = len(attempts_df)
-avg_score = latest_attempts["score"].mean().round(2)
-avg_ces = attempts_df["ces_value"].mean().round(2) if "ces_value" in attempts_df else 0.0
-# Convert avg_time to minutes for cleaner display
-avg_time_seconds = attempts_df["duration_seconds"].mean()
-avg_time_minutes = (avg_time_seconds / 60).round(1)
-
-kpi_row([
-    ("Total Attempts", total_attempts, None),
-    ("Average Latest Score", f"{avg_score}%", None),
-    ("Average Time on Task (mins)", f"{avg_time_minutes}", None),
-    ("Average CES", avg_ces, None),
-])
-
-# --------------------------- SCORE TREND ---------------------------
-
-section_header("📈 Score Trend Over Time")
-
-# Sort data and plot line graph
-attempts_df_sorted = sort_by_timestamp(attempts_df, column="timestamp")
-
-if not is_empty(attempts_df_sorted):
-    # Plotting score, using case title for color/line grouping
-    plot_line(
-        attempts_df_sorted, 
-        x="timestamp", 
-        y="score", 
-        color="title", 
-        title="Score Trend Across All Attempts"
-    )
-else:
-    show_empty("No score data to plot.")
-
-# --------------------------- FIRST VS SECOND ATTEMPT ---------------------------
-
-section_header("Attempt 1 vs Attempt 2 (By Case)")
-
-if "attempt_number" in attempts_df.columns:
-    # Group by case title and attempt number, then take the average score
-    attempt_compare = attempts_df.groupby(["title", "attempt_number"])["score"].mean().reset_index()
+with col1:
+    # Score trend over time
+    st.markdown("### Score Trend Over Time")
+    score_trend_query = get_score_trend(student_id)
+    score_trend_df = db.execute_query_df(score_trend_query)
     
-    # Filter only for the first two attempts (if available)
-    attempt_compare = attempt_compare[attempt_compare["attempt_number"].isin([1, 2])]
-    
-    if not is_empty(attempt_compare):
-        plot_bar(
-            attempt_compare, 
-            x="title", 
-            y="score", 
-            color="attempt_number", 
-            title="Average Score: Attempt 1 vs Attempt 2 by Case"
+    if not score_trend_df.empty:
+        fig = create_line_chart(
+            score_trend_df,
+            x='timestamp',
+            y='score',
+            title='',
+            x_label='Date',
+            y_label='Score (%)'
         )
+        st.plotly_chart(fig, use_container_width=True)
     else:
-        show_empty("Only one attempt per case found, comparison not available.")
-else:
-    show_empty()
+        st.info("Complete case studies to see your score trend")
 
-# --------------------------- RUBRIC DIMENSIONS ---------------------------
-
-section_header("📊 Rubric Dimension Breakdown")
-
-if not is_empty(rubric_df):
-    # Calculate mastery rate (score/max_score)
-    rubric_df["mastery_rate"] = rubric_df["score"] / rubric_df["max_score"]
+with col2:
+    # Attempt improvement
+    st.markdown("### Improvement: Attempt 1 vs 2")
+    improvement_query = get_attempt_improvement(student_id)
+    improvement_df = db.execute_query_df(improvement_query)
     
-    # Aggregate mastery by dimension
-    rubric_agg = rubric_df.groupby("rubric_dimension")["mastery_rate"].mean().reset_index()
+    if not improvement_df.empty and 'improvement' in improvement_df.columns:
+        # Filter out null improvements
+        improvement_df = improvement_df[improvement_df['improvement'].notna()]
+        
+        if not improvement_df.empty:
+            fig = create_bar_chart(
+                improvement_df,
+                x='case_title',
+                y='improvement',
+                title='',
+                y_label='Score Improvement (points)'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Complete second attempts to see improvements")
+    else:
+        st.info("Complete second attempts to see improvements")
+
+# Second row of charts
+col3, col4 = st.columns(2)
+
+with col3:
+    # Rubric dimension mastery
+    st.markdown("### Rubric Dimension Mastery")
     
-    plot_bar(
-        rubric_agg, 
-        x="rubric_dimension", 
-        y="mastery_rate", 
-        title="Average Mastery Rate by Rubric Dimension"
+    if not rubric_df.empty:
+        fig = create_bar_chart(
+            rubric_df,
+            x='rubric_dimension',
+            y='avg_percentage',
+            title='',
+            orientation='h',
+            x_label='Mastery (%)',
+            y_label='Dimension'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Complete assessments to see rubric mastery")
+
+with col4:
+    # Engagement by action type
+    st.markdown("### Engagement by Action Type")
+    action_query = get_engagement_by_action_type(student_id)
+    action_df = db.execute_query_df(action_query)
+    
+    if not action_df.empty:
+        from core.components import create_pie_chart
+        fig = create_pie_chart(
+            action_df,
+            names='action_type',
+            values='action_count',
+            title=''
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Engagement data will appear here")
+
+# Daily engagement trend
+st.markdown("### Daily Engagement Activity")
+daily_engagement_query = get_daily_engagement_trend(student_id, days=30)
+daily_engagement_df = db.execute_query_df(daily_engagement_query)
+
+if not daily_engagement_df.empty:
+    fig = create_line_chart(
+        daily_engagement_df,
+        x='date',
+        y='total_duration',
+        title='',
+        x_label='Date',
+        y_label='Total Duration (seconds)'
     )
+    st.plotly_chart(fig, use_container_width=True)
 else:
-    show_empty("No rubric scores found for the selected period.")
+    st.info("Daily engagement data will appear here")
 
-# --------------------------- TIME ON TASK VS SCORE ---------------------------
+st.markdown("---")
 
-section_header("⏱️ Correlation: Duration vs Score")
+# ============================================
+# DETAILED TABLES
+# ============================================
 
-if "duration_seconds" in attempts_df.columns and "score" in attempts_df.columns:
-    plot_scatter(
-        attempts_df, 
-        x="duration_seconds", 
-        y="score", 
-        color="title", 
-        title="Attempt Duration vs Final Score"
-    )
-else:
-    show_empty()
-
-# --------------------------- CES DISTRIBUTION ---------------------------
-
-section_header("😊 CES Score Distribution")
-
-if "ces_value" in attempts_df.columns:
-    plot_hist(
-        attempts_df, 
-        x="ces_value", 
-        title="Customer Effort Score (CES) Distribution"
-    )
-else:
-    show_empty("CES data not available in attempts.")
-
-
-# --------------------------- ENGAGEMENT TIMELINE ---------------------------
-
-section_header("📅 Engagement Over Time")
-
-if not is_empty(eng_df):
-    eng_daily = eng_df.copy()
+if show_details:
+    st.markdown("## 📋 Detailed Data")
     
-    # Ensure timestamp is datetime type for .dt.date access
-    eng_daily = sort_by_timestamp(eng_daily, column="timestamp") 
+    tab1, tab2, tab3 = st.tabs(["📝 Attempt History", "📊 Rubric Scores", "🎯 Engagement Logs"])
     
-    # Group by day and count session IDs
-    timeline = eng_daily.groupby(eng_daily["timestamp"].dt.date)["session_id"].count().reset_index().rename(
-        columns={"timestamp": "day", "session_id": "events"}
-    )
-    plot_line(timeline, x="day", y="events", title="Daily Engagement Events")
-else:
-    show_empty("No engagement events found for the selected date range.")
-
-
-# --------------------------- ENVIRONMENT SNAPSHOT ---------------------------
-
-section_header("🖥️ Environment Snapshot (Latest Readings)")
-
-if not is_empty(env_df):
-    st.markdown("Metrics recorded at the time of your attempts:")
+    with tab1:
+        st.markdown("### Attempt History")
+        attempts_query = get_student_attempts(
+            student_id,
+            start_date.isoformat() if date_range_option != "All Time" else None,
+            end_date.isoformat()
+        )
+        attempts_df = db.execute_query_df(attempts_query)
+        
+        if not attempts_df.empty:
+            # Format the dataframe
+            display_df = attempts_df[['case_title', 'attempt_number', 'score', 
+                                     'duration_seconds', 'ces_value', 'timestamp', 'state']].copy()
+            display_df['duration'] = display_df['duration_seconds'].apply(format_duration)
+            display_df = display_df.drop('duration_seconds', axis=1)
+            display_df.columns = ['Case', 'Attempt #', 'Score', 'CES', 'Date', 'Status', 'Duration']
+            
+            render_data_table(display_df, height=400)
+            
+            # Download button
+            csv = attempts_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Attempts Data",
+                data=csv,
+                file_name=f"my_attempts_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No attempts found in the selected date range")
     
-    # Select key environment metrics for display and join with attempts for context
-    env_display = env_df.merge(
-        attempts_df[["attempt_id", "timestamp", "score", "title"]], 
-        on="attempt_id", 
-        how="left"
-    ).sort_values(by="timestamp", ascending=False).head(5)
+    with tab2:
+        st.markdown("### Rubric Scores & Feedback")
+        rubric_scores_query = get_student_rubric_scores(student_id)
+        rubric_scores_df = db.execute_query_df(rubric_scores_query)
+        
+        if not rubric_scores_df.empty:
+            # Format the dataframe
+            display_df = rubric_scores_df[['case_title', 'attempt_number', 'rubric_dimension', 
+                                          'score', 'max_score', 'percentage', 
+                                          'improvement_flag', 'comment']].copy()
+            display_df.columns = ['Case', 'Attempt #', 'Dimension', 'Score', 
+                                 'Max Score', 'Percentage', 'Needs Improvement', 'Feedback']
+            
+            render_data_table(display_df, height=400)
+            
+            # Download button
+            csv = rubric_scores_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Rubric Scores",
+                data=csv,
+                file_name=f"my_rubric_scores_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No rubric scores available")
     
-    st.dataframe(
-        env_display[[
-            "timestamp", "title", "score", "internet_latency_ms", 
-            "noise_level", "device_type"
-        ]].set_index("timestamp")
-    )
-else:
-    show_empty("No environment data found for your recent attempts.")
+    with tab3:
+        st.markdown("### Engagement Session Logs")
+        engagement_query = get_student_engagement(
+            student_id,
+            start_date.isoformat() if date_range_option != "All Time" else None,
+            end_date.isoformat()
+        )
+        engagement_data_df = db.execute_query_df(engagement_query)
+        
+        if not engagement_data_df.empty:
+            # Format the dataframe
+            display_df = engagement_data_df[['case_title', 'session_id', 'action_type', 
+                                            'session_phase', 'duration_seconds', 'timestamp']].copy()
+            display_df['duration'] = display_df['duration_seconds'].apply(format_duration)
+            display_df = display_df.drop('duration_seconds', axis=1)
+            display_df.columns = ['Case', 'Session ID', 'Action', 'Phase', 'Timestamp', 'Duration']
+            
+            render_data_table(display_df, height=400)
+            
+            # Download button
+            csv = engagement_data_df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Engagement Logs",
+                data=csv,
+                file_name=f"my_engagement_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No engagement logs in the selected date range")
+
+# Footer
+st.markdown("---")
+st.caption("💡 MIND Unified Dashboard | Miva Open University")
