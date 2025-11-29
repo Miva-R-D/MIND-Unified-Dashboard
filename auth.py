@@ -1,17 +1,24 @@
 """
 Authentication module for MIND Unified Dashboard
-Handles user login and role-based access control
+Handles user login and role-based access control with bcrypt support
 """
 
 import streamlit as st
 from typing import Optional, Dict
 from db import get_db_manager
 
+# Try to import bcrypt for secure password hashing
+try:
+    import bcrypt
+    BCRYPT_AVAILABLE = True
+except ImportError:
+    BCRYPT_AVAILABLE = False
+
 # Default credentials (for demo/initial setup)
-# In production, these should be stored in database with hashed passwords
+# These are fallbacks if secrets.toml doesn't have user configs
 DEFAULT_USERS = {
     'admin@example.com': {
-        'password': 'admin123',  # Change this!
+        'password': 'admin123',
         'role': 'Admin',
         'name': 'Administrator'
     },
@@ -33,6 +40,57 @@ DEFAULT_USERS = {
     }
 }
 
+def load_users_from_secrets() -> Dict:
+    """
+    Load user credentials from Streamlit secrets
+    Supports both bcrypt hashed passwords and plain text (for demo)
+    """
+    users = {}
+    
+    try:
+        # Try to load users from secrets
+        user_configs = ['admin_user', 'faculty_user', 'developer_user', 'student_user']
+        
+        for user_config in user_configs:
+            if user_config in st.secrets:
+                user_data = st.secrets[user_config]
+                email = user_data.get('username')
+                
+                if email:
+                    users[email] = {
+                        'password_hash': user_data.get('password_hash'),
+                        'role': user_data.get('role'),
+                        'name': user_data.get('role', 'User'),  # Default to role name
+                        'student_id': user_data.get('student_id')
+                    }
+    except Exception as e:
+        # If secrets not configured, fall back to default users
+        pass
+    
+    return users
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify a password against a bcrypt hash
+    
+    Args:
+        plain_password: Plain text password
+        hashed_password: Bcrypt hashed password
+        
+    Returns:
+        True if password matches, False otherwise
+    """
+    if not BCRYPT_AVAILABLE:
+        return False
+    
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False
+
 def init_session_state():
     """Initialize session state variables"""
     if 'authenticated' not in st.session_state:
@@ -49,6 +107,7 @@ def init_session_state():
 def authenticate_user(email: str, password: str) -> Optional[Dict]:
     """
     Authenticate user credentials
+    Supports both bcrypt hashed passwords and plain text (for demo)
     
     Args:
         email: User email
@@ -57,7 +116,24 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
     Returns:
         User data dictionary if authenticated, None otherwise
     """
-    # First check default users (demo purposes)
+    # First try to load users from secrets (with bcrypt hashes)
+    secrets_users = load_users_from_secrets()
+    
+    if email in secrets_users:
+        user = secrets_users[email]
+        password_hash = user.get('password_hash')
+        
+        # Try bcrypt verification if hash is available
+        if password_hash and BCRYPT_AVAILABLE:
+            if verify_password(password, password_hash):
+                return {
+                    'email': email,
+                    'name': user['name'],
+                    'role': user['role'],
+                    'student_id': user.get('student_id')
+                }
+    
+    # Fall back to default users (plain text passwords for demo)
     if email in DEFAULT_USERS:
         user = DEFAULT_USERS[email]
         if user['password'] == password:
