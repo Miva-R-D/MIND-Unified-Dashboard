@@ -1,8 +1,8 @@
-streamlit==1.31.0
-pandas==2.2.0
-numpy==1.26.3
-plotly==5.18.0
-pg8000==1.30.5
-python-dotenv==1.0.1
-altair==5.2.0
-bcrypt==4.1.2
+streamlit
+pandas
+numpy
+plotly
+psycopg2-binary
+python-dotenv
+altair
+bcrypt
