@@ -1,115 +1,266 @@
-import pandas as pd
-from typing import Optional
-# Assuming db.py is one level up (in core/)
-from db import run_query 
+"""
+SQL queries for environment_metrics and system_reliability tables
+Provides functions for developer dashboard
+"""
 
+from typing import Optional, List
 
-# ----------------- BASIC LOADERS -----------------
+# ============================================
+# ENVIRONMENT METRICS QUERIES
+# ============================================
 
-def load_environment_metrics(start_date: Optional[str] = None, end_date: Optional[str] = None) -> pd.DataFrame:
+def get_environment_metrics_for_attempt(attempt_id: str) -> str:
+    """Get environment metrics for a specific attempt"""
+    return f"""
+    SELECT 
+        em.*,
+        a.score,
+        a.timestamp,
+        cs.title as case_title
+    FROM environment_metrics em
+    LEFT JOIN attempts a ON em.attempt_id = a.attempt_id
+    LEFT JOIN case_studies cs ON em.case_id = cs.case_id
+    WHERE em.attempt_id = '{attempt_id}'
     """
-    Load environment metrics by joining with the attempts table to filter by timestamp.
-    (More efficient than using a subquery with IN).
-    """
-    sql = """
-        SELECT e.*
-        FROM environment_metrics e
-        JOIN attempts a 
-            ON e.attempt_id = a.attempt_id
-        WHERE a.timestamp >= :start AND a.timestamp <= :end
-        ORDER BY e.attempt_id;
-    """
-    
-    # Prepare parameters with safe default date range
-    params = {
-        "start": f"{start_date} 00:00:00" if start_date else "1900-01-01 00:00:00",
-        "end": f"{end_date} 23:59:59" if end_date else "2999-12-31 23:59:59"
-    }
-    
-    return run_query(sql, params)
 
+def get_student_environment_history(student_id: str) -> str:
+    """Get environment quality history for a student"""
+    return f"""
+    SELECT 
+        em.attempt_id,
+        em.case_id,
+        cs.title as case_title,
+        em.noise_level,
+        em.noise_quality_index,
+        em.internet_latency_ms,
+        em.internet_stability_score,
+        em.connection_drops,
+        em.device_type,
+        em.microphone_type,
+        em.signal_strength,
+        a.score,
+        a.timestamp
+    FROM environment_metrics em
+    INNER JOIN attempts a ON em.attempt_id = a.attempt_id
+    LEFT JOIN case_studies cs ON em.case_id = cs.case_id
+    WHERE em.student_id = '{student_id}'
+    ORDER BY a.timestamp DESC
+    """
 
-def load_environment_for_student(student_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> pd.DataFrame:
+def get_environment_quality_distribution() -> str:
+    """Get distribution of environment quality metrics"""
+    return """
+    SELECT 
+        CASE 
+            WHEN noise_level <= 40 THEN 'Low (0-40 dB)'
+            WHEN noise_level <= 60 THEN 'Moderate (41-60 dB)'
+            WHEN noise_level <= 80 THEN 'High (61-80 dB)'
+            ELSE 'Very High (>80 dB)'
+        END as noise_category,
+        CASE 
+            WHEN internet_stability_score >= 80 THEN 'Excellent (80-100)'
+            WHEN internet_stability_score >= 60 THEN 'Good (60-79)'
+            WHEN internet_stability_score >= 40 THEN 'Fair (40-59)'
+            ELSE 'Poor (<40)'
+        END as stability_category,
+        COUNT(*) as attempt_count,
+        AVG(internet_latency_ms) as avg_latency,
+        AVG(connection_drops) as avg_drops
+    FROM environment_metrics
+    GROUP BY noise_category, stability_category
+    ORDER BY noise_category, stability_category
     """
-    Load environment metrics for a specific student, filtering by student_id 
-    and optional date range using the attempts table.
-    """
-    sql = """
-        SELECT e.*
-        FROM environment_metrics e
-        JOIN attempts a 
-            ON e.attempt_id = a.attempt_id
-        WHERE a.student_id = :sid
-          AND a.timestamp >= :start AND a.timestamp <= :end
-        ORDER BY a.timestamp DESC;
-    """
-    
-    # Prepare parameters with safe default date range
-    params = {
-        "sid": student_id,
-        "start": f"{start_date} 00:00:00" if start_date else "1900-01-01 00:00:00",
-        "end": f"{end_date} 23:59:59" if end_date else "2999-12-31 23:59:59"
-    }
-    
-    return run_query(sql, params)
 
+def get_environment_impact_on_performance() -> str:
+    """Analyze correlation between environment and performance"""
+    return """
+    SELECT 
+        CASE 
+            WHEN em.internet_latency_ms <= 50 THEN 'Low Latency (≤50ms)'
+            WHEN em.internet_latency_ms <= 100 THEN 'Medium Latency (51-100ms)'
+            WHEN em.internet_latency_ms <= 200 THEN 'High Latency (101-200ms)'
+            ELSE 'Very High Latency (>200ms)'
+        END as latency_category,
+        COUNT(*) as attempt_count,
+        AVG(a.score) as avg_score,
+        AVG(a.duration_seconds) as avg_duration,
+        AVG(em.connection_drops) as avg_connection_drops
+    FROM environment_metrics em
+    INNER JOIN attempts a ON em.attempt_id = a.attempt_id
+    WHERE em.internet_latency_ms IS NOT NULL
+    GROUP BY latency_category
+    ORDER BY 
+        CASE 
+            WHEN latency_category = 'Low Latency (≤50ms)' THEN 1
+            WHEN latency_category = 'Medium Latency (51-100ms)' THEN 2
+            WHEN latency_category = 'High Latency (101-200ms)' THEN 3
+            ELSE 4
+        END
+    """
 
-def load_environment_with_attempts(start_date: Optional[str] = None, end_date: Optional[str] = None) -> pd.DataFrame:
+def get_device_type_distribution() -> str:
+    """Get distribution of device types"""
+    return """
+    SELECT 
+        device_type,
+        microphone_type,
+        COUNT(*) as usage_count,
+        AVG(noise_quality_index) as avg_noise_quality,
+        AVG(internet_stability_score) as avg_stability
+    FROM environment_metrics
+    WHERE device_type IS NOT NULL
+    GROUP BY device_type, microphone_type
+    ORDER BY usage_count DESC
     """
-    Join environment metrics with attempts table for correlation plots (e.g., latency vs score).
-    """
-    sql = """
-        SELECT 
-            e.*,
-            a.score,
-            a.duration_seconds, -- Added duration for better analysis
-            a.timestamp AS attempt_time
-        FROM environment_metrics e
-        JOIN attempts a
-            ON e.attempt_id = a.attempt_id
-        WHERE a.timestamp >= :start AND a.timestamp <= :end
-        ORDER BY a.timestamp;
-    """
-    
-    # Prepare parameters with safe default date range
-    params = {
-        "start": f"{start_date} 00:00:00" if start_date else "1900-01-01 00:00:00",
-        "end": f"{end_date} 23:59:59" if end_date else "2999-12-31 23:59:59"
-    }
-    
-    return run_query(sql, params)
 
+def get_poor_environment_attempts(threshold: int = 50) -> str:
+    """Get attempts with poor environment quality"""
+    return f"""
+    SELECT 
+        em.attempt_id,
+        em.student_id,
+        s.name as student_name,
+        em.case_id,
+        cs.title as case_title,
+        em.noise_level,
+        em.noise_quality_index,
+        em.internet_latency_ms,
+        em.internet_stability_score,
+        em.connection_drops,
+        a.score,
+        a.timestamp
+    FROM environment_metrics em
+    INNER JOIN attempts a ON em.attempt_id = a.attempt_id
+    LEFT JOIN students s ON em.student_id = s.student_id
+    LEFT JOIN case_studies cs ON em.case_id = cs.case_id
+    WHERE em.internet_stability_score < {threshold}
+       OR em.noise_level > 80
+       OR em.internet_latency_ms > 200
+    ORDER BY a.timestamp DESC
+    LIMIT 100
+    """
 
-# ----------------- AGGREGATES -----------------
+# ============================================
+# SYSTEM RELIABILITY QUERIES
+# ============================================
 
-def load_environment_summary() -> pd.DataFrame:
+def get_system_reliability_overview(hours: int = 24) -> str:
+    """Get system reliability overview for last N hours"""
+    return f"""
+    SELECT 
+        api_name,
+        COUNT(*) as total_records,
+        AVG(latency_ms) as avg_latency,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY latency_ms) as p50_latency,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) as p95_latency,
+        AVG(error_rate) as avg_error_rate,
+        AVG(reliability_index) as avg_reliability,
+        SUM(CASE WHEN severity = 'Critical' THEN 1 ELSE 0 END) as critical_count,
+        SUM(CASE WHEN severity = 'Warning' THEN 1 ELSE 0 END) as warning_count
+    FROM system_reliability
+    WHERE timestamp >= NOW() - INTERVAL '{hours} hours'
+    GROUP BY api_name
+    ORDER BY avg_reliability DESC
     """
-    Basic averages for environment conditions across the platform.
-    """
-    sql = """
-        SELECT 
-            COUNT(e.attempt_id) AS total_records,
-            AVG(noise_level)::numeric(10,2) AS avg_noise,
-            AVG(noise_quality_index)::numeric(10,2) AS avg_noise_quality,
-            AVG(internet_latency_ms)::numeric(10,2) AS avg_latency,
-            AVG(internet_stability_score)::numeric(10,2) AS avg_stability,
-            AVG(connection_drops)::numeric(10,2) AS avg_drops
-        FROM environment_metrics e;
-    """
-    # Renamed avg(noise_quality_index) for clarity and added total_records
-    return run_query(sql)
 
+def get_latency_trend(api_name: str, hours: int = 24) -> str:
+    """Get latency trend for specific API"""
+    return f"""
+    SELECT 
+        DATE_TRUNC('hour', timestamp) as hour,
+        AVG(latency_ms) as avg_latency,
+        MIN(latency_ms) as min_latency,
+        MAX(latency_ms) as max_latency,
+        COUNT(*) as record_count
+    FROM system_reliability
+    WHERE api_name = '{api_name}'
+    AND timestamp >= NOW() - INTERVAL '{hours} hours'
+    GROUP BY hour
+    ORDER BY hour ASC
+    """
 
-def load_device_type_distribution() -> pd.DataFrame:
+def get_error_rate_by_api(hours: int = 24) -> str:
+    """Get error rates by API"""
+    return f"""
+    SELECT 
+        api_name,
+        AVG(error_rate) as avg_error_rate,
+        MAX(error_rate) as max_error_rate,
+        COUNT(*) as sample_count
+    FROM system_reliability
+    WHERE timestamp >= NOW() - INTERVAL '{hours} hours'
+    GROUP BY api_name
+    ORDER BY avg_error_rate DESC
     """
-    Count of attempts by device type.
+
+def get_critical_incidents(days: int = 7) -> str:
+    """Get critical incidents"""
+    return f"""
+    SELECT 
+        record_id,
+        api_name,
+        latency_ms,
+        error_rate,
+        reliability_index,
+        timestamp,
+        location,
+        severity
+    FROM system_reliability
+    WHERE severity = 'Critical'
+    AND timestamp >= NOW() - INTERVAL '{days} days'
+    ORDER BY timestamp DESC
+    LIMIT 100
     """
-    sql = """
-        SELECT 
-            device_type,
-            COUNT(attempt_id) AS count
-        FROM environment_metrics
-        GROUP BY device_type
-        ORDER BY count DESC;
+
+def get_reliability_by_location(hours: int = 24) -> str:
+    """Get reliability metrics by location"""
+    return f"""
+    SELECT 
+        location,
+        COUNT(*) as total_records,
+        AVG(latency_ms) as avg_latency,
+        AVG(error_rate) as avg_error_rate,
+        AVG(reliability_index) as avg_reliability,
+        SUM(CASE WHEN severity = 'Critical' THEN 1 ELSE 0 END) as critical_count
+    FROM system_reliability
+    WHERE timestamp >= NOW() - INTERVAL '{hours} hours'
+    AND location IS NOT NULL
+    GROUP BY location
+    ORDER BY avg_reliability DESC
     """
-    return run_query(sql)
+
+def get_reliability_trend_over_time(days: int = 7) -> str:
+    """Get overall reliability trend"""
+    return f"""
+    SELECT 
+        DATE(timestamp) as date,
+        AVG(reliability_index) as avg_reliability,
+        AVG(latency_ms) as avg_latency,
+        AVG(error_rate) as avg_error_rate,
+        SUM(CASE WHEN severity = 'Critical' THEN 1 ELSE 0 END) as critical_incidents
+    FROM system_reliability
+    WHERE timestamp >= CURRENT_DATE - INTERVAL '{days} days'
+    GROUP BY date
+    ORDER BY date ASC
+    """
+
+def get_api_performance_summary() -> str:
+    """Get comprehensive API performance summary"""
+    return """
+    WITH recent_data AS (
+        SELECT *
+        FROM system_reliability
+        WHERE timestamp >= NOW() - INTERVAL '24 hours'
+    )
+    SELECT 
+        api_name,
+        COUNT(*) as total_calls,
+        AVG(latency_ms) as avg_latency,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms) as p95_latency,
+        AVG(error_rate) as avg_error_rate,
+        AVG(reliability_index) as avg_reliability,
+        MAX(timestamp) as last_checked
+    FROM recent_data
+    GROUP BY api_name
+    ORDER BY avg_reliability DESC
+    """
