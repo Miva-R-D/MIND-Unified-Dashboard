@@ -221,7 +221,6 @@ col1, col2 = st.columns(2)
 
 with col1:
     # Score trend over time
-    st.markdown("### Score Trend Over Time")
     score_trend_query = get_score_trend(student_id)
     score_trend_df = db.execute_query_df(score_trend_query)
     
@@ -230,7 +229,7 @@ with col1:
             score_trend_df,
             x='timestamp',
             y='score',
-            title='',
+            title='Score Trend Over Time',
             x_label='Date',
             y_label='Score (%)'
         )
@@ -240,7 +239,6 @@ with col1:
 
 with col2:
     # Attempt improvement
-    st.markdown("### Improvement: Attempt 1 vs 2")
     improvement_query = get_attempt_improvement(student_id)
     improvement_df = db.execute_query_df(improvement_query)
     
@@ -253,7 +251,7 @@ with col2:
                 improvement_df,
                 x='case_title',
                 y='improvement',
-                title='',
+                title='Improvement: Attempt 1 vs 2',
                 y_label='Score Improvement (points)'
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -267,14 +265,13 @@ col3, col4 = st.columns(2)
 
 with col3:
     # Rubric dimension mastery
-    st.markdown("### Rubric Dimension Mastery")
     
     if not rubric_df.empty:
         fig = create_bar_chart(
             rubric_df,
             x='avg_percentage',
             y='rubric_dimension',
-            title='',
+            title='Rubric Dimension Mastery',
             orientation='h',
             x_label='Mastery (%)',
             y_label='Dimension'
@@ -285,7 +282,6 @@ with col3:
 
 with col4:
     # Engagement by action type
-    st.markdown("### Engagement by Action Type")
     action_query = get_engagement_by_action_type(student_id)
     action_df = db.execute_query_df(action_query)
     
@@ -295,14 +291,13 @@ with col4:
             action_df,
             names='action_type',
             values='action_count',
-            title=''
+            title='Engagement by Action Type'
         )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Engagement data will appear here")
 
 # Daily engagement trend
-st.markdown("### Daily Engagement Activity")
 daily_engagement_query = get_daily_engagement_trend(student_id, days=30)
 daily_engagement_df = db.execute_query_df(daily_engagement_query)
 
@@ -311,7 +306,7 @@ if not daily_engagement_df.empty:
         daily_engagement_df,
         x='date',
         y='total_duration',
-        title='',
+        title='Daily Engagement Activity',
         x_label='Date',
         y_label='Total Duration (seconds)'
     )
