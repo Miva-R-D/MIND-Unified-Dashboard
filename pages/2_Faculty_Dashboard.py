@@ -480,6 +480,9 @@ st.markdown("---")
 
 st.markdown("### 📅 Engagement Trends Over Time")
 
+# Build date filter for engagement_logs (using 'el' alias)
+engagement_date_filter = build_date_filter('el')
+
 engagement_trend_query = f"""
 SELECT 
     DATE(el.timestamp) as date,
@@ -488,7 +491,7 @@ SELECT
 FROM engagement_logs el
 INNER JOIN students s ON el.student_id = s.student_id
 WHERE {student_filter}
-AND {date_filter}
+AND {engagement_date_filter}
 GROUP BY DATE(el.timestamp)
 ORDER BY date
 """
