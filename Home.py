@@ -10,12 +10,21 @@ from db import init_database
 import base64
 
 # Page configuration
-st.set_page_config(
-    page_title="MIND Unified Dashboard",
-    page_icon="💡",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Try to use logo if available, fallback to emoji
+try:
+    st.set_page_config(
+        page_title="MIND Unified Dashboard",
+        page_icon="assets/mind_logo.png",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except:
+    st.set_page_config(
+        page_title="MIND Unified Dashboard",
+        page_icon="💡",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
 
 # Apply custom theme
 st.markdown(apply_streamlit_theme(), unsafe_allow_html=True)
@@ -25,9 +34,13 @@ init_session_state()
 
 # Sidebar
 with st.sidebar:
-    # Logo (placeholder - you can add your actual logo)
-    st.markdown("### 🎓 MIVA OPEN UNIVERSITY")
-    st.markdown("#### MIND Unified Dashboard")
+    # Logo
+    try:
+        st.image("assets/mind_logo.png", use_container_width=True)
+    except:
+        st.markdown("### 🎓 MIVA OPEN UNIVERSITY")
+        st.markdown("#### MIND Unified Dashboard")
+    
     st.markdown("---")
     
     # Authentication status
@@ -71,6 +84,14 @@ if not is_authenticated():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
+        # Display logo if available
+        try:
+            col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+            with col_logo2:
+                st.image("assets/mind_logo.png", width=200)
+        except:
+            pass
+        
         st.markdown("# 💡 Welcome to the MIND Unified Dashboard")
         st.markdown("---")
         
@@ -96,9 +117,16 @@ else:
     # Home page for authenticated users
     user = get_current_user()
     
-    # Welcome header
-    st.markdown(f"# 💡 Welcome to the MIND Unified Dashboard")
-    st.markdown(f"### Hello {user['name']} 👋")
+    # Welcome header with logo
+    col_header1, col_header2 = st.columns([1, 6])
+    with col_header1:
+        try:
+            st.image("assets/mind_logo.png", width=100)
+        except:
+            st.markdown("# 💡")
+    with col_header2:
+        st.markdown(f"# Welcome to the MIND Unified Dashboard")
+        st.markdown(f"### Hello {user['name']} 👋")
     
     st.markdown("---")
     
