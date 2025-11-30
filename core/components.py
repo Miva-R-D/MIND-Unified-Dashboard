@@ -253,12 +253,14 @@ def create_heatmap(df: pd.DataFrame, title: str,
         textfont={"size": 10}
     ))
     
-    fig.update_layout(
-        **get_plotly_theme()['layout'],
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title=y_label
-    )
+    theme_layout = get_plotly_theme()['layout'].copy()
+    theme_layout['title'] = title
+    if x_label:
+        theme_layout['xaxis_title'] = x_label
+    if y_label:
+        theme_layout['yaxis_title'] = y_label
+    
+    fig.update_layout(**theme_layout)
     
     return fig
 
