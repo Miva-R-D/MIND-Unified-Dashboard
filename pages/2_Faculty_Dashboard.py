@@ -16,7 +16,7 @@ from core.components import (
     create_heatmap, create_box_plot, render_data_table
 )
 from core.utils import (
-    format_number, format_percentage, format_duration, get_date_range_filter,
+    format_number, format_percentage, format_duration,
     get_at_risk_students
 )
 from core.queries.attempts_queries import (
@@ -91,30 +91,27 @@ with col4:
         ["Last 7 Days", "Last 30 Days", "Last 90 Days", "All Time", "Custom Range"]
     )
 
-# Get date filter
-date_range_map = {
-    "Last 7 Days": 7,
-    "Last 30 Days": 30,
-    "Last 90 Days": 90,
-    "All Time": 365,
-    "Custom Range": 30
-}
-
-# Then call with the number:
-if date_range != "Custom Range":
-    days = date_range_map.get(date_range, 30)
-    start_date = datetime.now() - timedelta(days=days)
-    end_date = datetime.now()
-    
-start_date, end_date = get_date_range_filter(date_range)
-
-# Custom date range
+# Convert date range selection to actual dates
 if date_range == "Custom Range":
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("Start Date", value=datetime.now() - timedelta(days=30))
     with col2:
         end_date = st.date_input("End Date", value=datetime.now())
+    # Convert to datetime
+    start_date = datetime.combine(start_date, datetime.min.time())
+    end_date = datetime.combine(end_date, datetime.max.time())
+else:
+    # Map string selections to number of days
+    date_range_map = {
+        "Last 7 Days": 7,
+        "Last 30 Days": 30,
+        "Last 90 Days": 90,
+        "All Time": 3650  # ~10 years
+    }
+    days = date_range_map.get(date_range, 30)
+    start_date = datetime.now() - timedelta(days=days)
+    end_date = datetime.now()
 
 st.markdown("---")
 
