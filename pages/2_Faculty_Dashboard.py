@@ -92,6 +92,20 @@ with col4:
     )
 
 # Get date filter
+date_range_map = {
+    "Last 7 Days": 7,
+    "Last 30 Days": 30,
+    "Last 90 Days": 90,
+    "All Time": 365,
+    "Custom Range": 30
+}
+
+# Then call with the number:
+if date_range != "Custom Range":
+    days = date_range_map.get(date_range, 30)
+    start_date = datetime.now() - timedelta(days=days)
+    end_date = datetime.now()
+    
 start_date, end_date = get_date_range_filter(date_range)
 
 # Custom date range
