@@ -28,7 +28,7 @@ class DatabaseManager:
         """
         try:
             # Try Streamlit secrets first
-            return {
+            params = {
                 'host': st.secrets["database"]["host"],
                 'database': st.secrets["database"]["database"],
                 'user': st.secrets["database"]["user"],
@@ -36,7 +36,19 @@ class DatabaseManager:
                 'port': st.secrets["database"].get("port", 5432),
                 'sslmode': st.secrets["database"].get("sslmode", "require")
             }
-        except (KeyError, FileNotFoundError):
+            
+            # DEBUG: Show what was loaded
+            st.write("✅ DEBUG: Successfully loaded Streamlit secrets")
+            st.write(f"📍 DEBUG: Host = {params['host']}")
+            st.write(f"📍 DEBUG: Database = {params['database']}")
+            
+            return params
+            
+        except (KeyError, FileNotFoundError) as e:
+            # DEBUG: Show error
+            st.error(f"❌ DEBUG: Failed to load secrets - {e}")
+            st.warning("⚠️ DEBUG: Falling back to environment variables")
+            
             # Fall back to environment variables
             return {
                 'host': os.getenv('DB_HOST'),
@@ -174,7 +186,7 @@ def init_database():
         **Setup Instructions:**
         
         1. Create a `.streamlit/secrets.toml` file with:
-        ```toml
+```toml
         [database]
         host = "your-neon-host.neon.tech"
         database = "your-database-name"
@@ -182,7 +194,7 @@ def init_database():
         password = "your-password"
         port = 5432
         sslmode = "require"
-        ```
+```
         
         2. Or set environment variables:
         - DB_HOST
