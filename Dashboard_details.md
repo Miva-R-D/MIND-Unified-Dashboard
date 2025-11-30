@@ -1,6 +1,6 @@
-# 📊 MIND Dashboard - Complete Features & Use Cases Guide
+# MIND Dashboard - Complete Features & Use Cases Guide
 
-## 📋 **Table of Contents**
+## **Table of Contents**
 
 1. [Executive Overview](#executive-overview)
 2. [Student Dashboard](#student-dashboard)
@@ -11,7 +11,7 @@
 
 ---
 
-## 🎯 **Executive Overview**
+## **Executive Overview**
 
 ### **What is the MIND Dashboard?**
 
@@ -37,7 +37,7 @@ The MIND Unified Analytics Dashboard is a comprehensive data analytics platform 
 
 ---
 
-# 👨‍🎓 **Student Dashboard**
+# 👨‍🎓**Student Dashboard**
 
 ## **Overview**
 
@@ -57,7 +57,7 @@ The Student Dashboard provides individuals with personalized insights into their
 
 ---
 
-## **📊 Key Performance Indicators (8 KPIs)**
+## **Key Performance Indicators (8 KPIs)**
 
 ### **1. Total Attempts**
 
@@ -436,7 +436,7 @@ The Student Dashboard provides individuals with personalized insights into their
 
 ---
 
-## **💡 How Students Use This Dashboard**
+## **How Students Use This Dashboard**
 
 ### **Weekly Check-in Routine:**
 
@@ -462,7 +462,7 @@ The Student Dashboard provides individuals with personalized insights into their
 
 ---
 
-# 👩‍🏫 **Faculty Dashboard**
+# **Faculty Dashboard**
 
 ## **Overview**
 
@@ -861,7 +861,7 @@ The Faculty Dashboard provides instructors with comprehensive insights into coho
 
 ---
 
-## **📋 Detailed Performance Data (4 Tables)**
+## **Detailed Performance Data (4 Tables)**
 
 ### **1. Student Performance Summary**
 
@@ -971,7 +971,7 @@ The Faculty Dashboard provides instructors with comprehensive insights into coho
 
 ---
 
-## **🎓 How Faculty Use This Dashboard**
+## **How Faculty Use This Dashboard**
 
 ### **Weekly Teaching Routine:**
 
@@ -1013,7 +1013,7 @@ The Faculty Dashboard provides instructors with comprehensive insights into coho
 
 ---
 
-# 👨‍💻 **Developer Dashboard**
+# **Developer Dashboard**
 
 ## **Overview**
 
@@ -1035,7 +1035,7 @@ The Developer Dashboard provides technical staff with comprehensive insights int
 
 ---
 
-## **📊 Key Performance Indicators (8 KPIs)**
+## **Key Performance Indicators (8 KPIs)**
 
 ### **1. Average API Latency**
 
@@ -1261,7 +1261,7 @@ The Developer Dashboard provides technical staff with comprehensive insights int
 
 ---
 
-## **📈 API Performance Analytics (6 Charts)**
+## **API Performance Analytics (6 Charts)**
 
 ### **1. Latency by API Service**
 
@@ -1424,7 +1424,7 @@ The Developer Dashboard provides technical staff with comprehensive insights int
 
 ---
 
-## **🌍 Environment Quality Analysis (4 Charts)**
+## **Environment Quality Analysis (4 Charts)**
 
 ### **1. Noise Level Distribution**
 
