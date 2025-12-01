@@ -35,14 +35,14 @@ The **MIND Unified Analytics Dashboard** is a production-ready, multi-role analy
 
 ### **Key Highlights**
 
-- 🎓 **4 Role-Based Dashboards** - Student, Faculty, Developer, Admin
-- 📊 **37+ Key Performance Indicators** across all dashboards
-- 📈 **28+ Interactive Charts** with Plotly visualizations
-- 📋 **16 Exportable Data Tables** in CSV format
-- 🔐 **Secure Authentication** with JWT and bcrypt
-- 🌐 **Cloud-Native** - Deployed on Streamlit Cloud with Neon PostgreSQL
-- 🎨 **Professional Branding** - Miva University colors and theme
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+-  **4 Role-Based Dashboards** - Student, Faculty, Developer, Admin
+-  **37+ Key Performance Indicators** across all dashboards
+-  **28+ Interactive Charts** with Plotly visualizations
+-  **16 Exportable Data Tables** in CSV format
+-  **Secure Authentication** with JWT and bcrypt
+-  **Cloud-Native** - Deployed on Streamlit Cloud with Neon PostgreSQL
+-  **Professional Branding** - Miva University colors and theme
+-  **Responsive Design** - Works on desktop, tablet, and mobile
 
 ### **Platform Statistics**
 
