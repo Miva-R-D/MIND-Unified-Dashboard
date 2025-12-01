@@ -345,6 +345,4 @@ MIND Platform Team
 
 ---
 
-**Your MIND Unified Dashboard is now LIVE and transforming educational analytics at Miva Open University!** 🎓✨
-
-**Congratulations on this amazing achievement!** 
+**Your MIND Unified Dashboard is now LIVE. Congratulations on this!** 
