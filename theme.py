@@ -1,126 +1,162 @@
 """
 Theme configuration for MIND Unified Dashboard
-Colors: Light ash background, deep blue primary, red accents
+Dynamic Light/Dark Mode Support with Miva Branding
 """
 
-# Color Palette
-COLORS = {
-    'background': '#000000',        # Light ash background
-    'primary': '#1B3B6F',           # Deep blue
-    'secondary': '#2E5C8A',         # Medium blue
-    'accent': '#DC143C',            # Crimson red
-    'success': '#28A745',           # Green for positive metrics
-    'warning': '#FFC107',           # Amber for warnings
-    'danger': '#DC3545',            # Red for critical
-    'text': '#2C3E50',              # Dark gray for text
-    'text_light': '#6C757D',        # Light gray for secondary text
-    'white': '#FFFFFF',
-    'border': '#DEE2E6'
+import streamlit as st
+
+# Import theme toggle system
+try:
+    from theme_toggle import get_theme, get_chart_colors as get_dynamic_colors
+    DYNAMIC_THEME = True
+except ImportError:
+    DYNAMIC_THEME = False
+
+# Miva University Brand Colors (used in both themes)
+BRAND_COLORS = {
+    'primary': '#800020',      # Miva Burgundy
+    'secondary': '#FFD700',    # Miva Gold
+    'accent': '#4169E1',       # Royal Blue
+    'success': '#28A745',      # Green
+    'warning': '#FFC107',      # Amber
+    'danger': '#DC3545',       # Red
 }
+
+# Light Theme Colors
+LIGHT_COLORS = {
+    **BRAND_COLORS,
+    'background': '#FFFFFF',
+    'secondary_bg': '#F5F5F5',
+    'text': '#2C3E50',
+    'text_light': '#6C757D',
+    'border': '#DEE2E6',
+    'white': '#FFFFFF',
+}
+
+# Dark Theme Colors
+DARK_COLORS = {
+    **BRAND_COLORS,
+    'background': '#0E1117',
+    'secondary_bg': '#262730',
+    'text': '#FAFAFA',
+    'text_light': '#BDBDBD',
+    'border': '#4A4A4A',
+    'white': '#1E1E1E',
+}
+
+# Get current theme colors
+def get_colors():
+    """Get color scheme based on current theme"""
+    if DYNAMIC_THEME:
+        theme = get_theme()
+        return DARK_COLORS if theme == "dark" else LIGHT_COLORS
+    return LIGHT_COLORS
+
+# Export COLORS for backward compatibility
+COLORS = get_colors()
 
 # Chart color schemes
 CHART_COLORS = {
-    'primary_gradient': ['#1B3B6F', '#2E5C8A', '#4A7BA7', '#6BA3C8'],
-    'accent_gradient': ['#DC143C', '#E8385F', '#F25C7C', '#FF8099'],
-    'mixed': ['#1B3B6F', '#DC143C', '#28A745', '#FFC107', '#2E5C8A'],
-    'performance': ['#DC143C', '#FFC107', '#28A745'],  # Red -> Yellow -> Green
+    'primary_gradient': ['#800020', '#A00028', '#C00030', '#E00038'],
+    'secondary_gradient': ['#FFD700', '#FFE44D', '#FFF199', '#FFFFE6'],
+    'mixed': ['#800020', '#4169E1', '#28A745', '#FFC107', '#DC3545'],
+    'performance': ['#DC3545', '#FFC107', '#28A745'],  # Red -> Yellow -> Green
 }
 
 def get_plotly_theme():
-    """Returns Plotly theme configuration"""
+    """Returns Plotly theme configuration based on current mode"""
+    colors = get_colors()
+    
     return {
         'layout': {
-            'paper_bgcolor': COLORS['white'],
-            'plot_bgcolor': COLORS['background'],
+            'paper_bgcolor': colors['background'],
+            'plot_bgcolor': colors['background'],
             'font': {
                 'family': 'Inter, sans-serif',
-                'color': COLORS['text']
+                'color': colors['text']
             },
             'title': {
                 'font': {
                     'size': 18,
-                    'color': COLORS['primary'],
+                    'color': colors['primary'],
                     'family': 'Inter, sans-serif'
                 }
             },
             'xaxis': {
-                'gridcolor': COLORS['border'],
-                'linecolor': COLORS['border']
+                'gridcolor': colors['border'],
+                'linecolor': colors['border'],
+                'tickfont': {'color': colors['text']}
             },
             'yaxis': {
-                'gridcolor': COLORS['border'],
-                'linecolor': COLORS['border']
+                'gridcolor': colors['border'],
+                'linecolor': colors['border'],
+                'tickfont': {'color': colors['text']}
             },
-            'colorway': CHART_COLORS['primary_gradient']
+            'colorway': CHART_COLORS['primary_gradient'],
+            'hovermode': 'closest',
+            'hoverlabel': {
+                'bgcolor': colors['background'],
+                'font': {'color': colors['text']}
+            },
+            'legend': {
+                'font': {'color': colors['text']}
+            }
         }
     }
 
 def apply_streamlit_theme():
-    """Returns CSS for Streamlit custom theming"""
+    """Returns CSS for Streamlit custom theming - static styles only"""
+    colors = get_colors()
+    
     return f"""
     <style>
-        /* Main background */
-        .stApp {{
-            background-color: {COLORS['background']};
-        }}
-        
-        /* Sidebar */
-        [data-testid="stSidebar"] {{
-            background-color: {COLORS['white']};
-            border-right: 2px solid {COLORS['border']};
-        }}
-        
-        /* Headers */
-        h1, h2, h3 {{
-            color: {COLORS['primary']};
-            font-family: 'Inter', sans-serif;
-        }}
-        
-        /* Metric containers */
-        [data-testid="stMetricValue"] {{
-            color: {COLORS['primary']};
-            font-size: 2rem;
-            font-weight: 600;
-        }}
-        
         /* KPI cards */
         .kpi-card {{
-            background-color: {COLORS['white']};
+            background-color: {colors['white']};
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid {COLORS['primary']};
+            border-left: 4px solid {colors['primary']};
         }}
         
         /* Accent elements */
         .accent-border {{
-            border-left: 4px solid {COLORS['accent']};
+            border-left: 4px solid {colors['accent']};
         }}
         
-        /* Buttons */
-        .stButton>button {{
-            background-color: {COLORS['primary']};
-            color: {COLORS['white']};
-            border-radius: 5px;
-            border: none;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-        }}
-        
-        .stButton>button:hover {{
-            background-color: {COLORS['secondary']};
+        /* Metric containers */
+        [data-testid="stMetricValue"] {{
+            font-size: 2rem;
+            font-weight: 600;
         }}
         
         /* Data tables */
         .dataframe {{
-            border: 1px solid {COLORS['border']};
+            border: 1px solid {colors['border']};
             border-radius: 5px;
         }}
         
-        /* Info boxes */
-        .stAlert {{
-            background-color: {COLORS['white']};
-            border-left: 4px solid {COLORS['primary']};
+        /* Remove Streamlit branding */
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {{
+            width: 10px;
+            height: 10px;
+        }}
+        
+        ::-webkit-scrollbar-track {{
+            background: {colors['secondary_bg']};
+        }}
+        
+        ::-webkit-scrollbar-thumb {{
+            background: {colors['primary']};
+            border-radius: 5px;
+        }}
+        
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #600018;
         }}
     </style>
     """
