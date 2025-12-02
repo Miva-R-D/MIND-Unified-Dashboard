@@ -1,162 +1,338 @@
 """
-Theme configuration for MIND Unified Dashboard
-Dynamic Light/Dark Mode Support with Miva Branding
+Dynamic Theme System for MIND Dashboard
+Provides light/dark mode toggle across all pages
 """
 
 import streamlit as st
 
-# Import theme toggle system
-try:
-    from theme_toggle import get_theme, get_chart_colors as get_dynamic_colors
-    DYNAMIC_THEME = True
-except ImportError:
-    DYNAMIC_THEME = False
+# Initialize theme in session state
+def init_theme():
+    """Initialize theme state if not exists"""
+    if "theme" not in st.session_state:
+        st.session_state.theme = "light"  # Default to light mode
 
-# Miva University Brand Colors (used in both themes)
-BRAND_COLORS = {
-    'primary': '#800020',      # Miva Burgundy
-    'secondary': '#FFD700',    # Miva Gold
-    'accent': '#4169E1',       # Royal Blue
-    'success': '#28A745',      # Green
-    'warning': '#FFC107',      # Amber
-    'danger': '#DC3545',       # Red
-}
+def get_theme():
+    """Get current theme"""
+    return st.session_state.get("theme", "light")
 
-# Light Theme Colors
-LIGHT_COLORS = {
-    **BRAND_COLORS,
-    'background': '#FFFFFF',
-    'secondary_bg': '#F5F5F5',
-    'text': '#2C3E50',
-    'text_light': '#6C757D',
-    'border': '#DEE2E6',
-    'white': '#FFFFFF',
-}
+def toggle_theme():
+    """Toggle between light and dark mode"""
+    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
 
-# Dark Theme Colors
-DARK_COLORS = {
-    **BRAND_COLORS,
-    'background': '#0E1117',
-    'secondary_bg': '#262730',
-    'text': '#FAFAFA',
-    'text_light': '#BDBDBD',
-    'border': '#4A4A4A',
-    'white': '#1E1E1E',
-}
+# Theme CSS configurations
+LIGHT_THEME = """
+<style>
+    /* Main background */
+    .stApp {
+        background-color: #FFFFFF;
+        color: #262730;
+    }
+    
+    /* Content area */
+    .block-container {
+        background-color: #FFFFFF;
+        color: #262730;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #F0F2F6;
+        color: #262730;
+    }
+    
+    [data-testid="stSidebar"] .css-1d391kg {
+        color: #262730;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #262730;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #595959;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #262730 !important;
+    }
+    
+    /* Text */
+    p, span, div {
+        color: #262730;
+    }
+    
+    /* Cards/containers */
+    div[data-testid="stVerticalBlock"] > div {
+        background-color: #FFFFFF;
+    }
+    
+    /* Input fields */
+    input, textarea, select {
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+        border: 1px solid #E0E0E0 !important;
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background-color: #800020;
+        color: #FFFFFF;
+        border: none;
+    }
+    
+    .stButton > button:hover {
+        background-color: #600018;
+    }
+    
+    /* Dataframes */
+    .dataframe {
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: #F0F2F6;
+        color: #262730;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #F0F2F6;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #262730;
+    }
+    
+    /* Success/Info/Warning boxes */
+    .stSuccess, .stInfo, .stWarning, .stError {
+        background-color: #F0F2F6;
+        color: #262730;
+    }
+</style>
+"""
 
-# Get current theme colors
-def get_colors():
-    """Get color scheme based on current theme"""
-    if DYNAMIC_THEME:
-        theme = get_theme()
-        return DARK_COLORS if theme == "dark" else LIGHT_COLORS
-    return LIGHT_COLORS
+DARK_THEME = """
+<style>
+    /* Main background */
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    
+    /* Content area */
+    .block-container {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #262730;
+        color: #FAFAFA;
+    }
+    
+    [data-testid="stSidebar"] .css-1d391kg {
+        color: #FAFAFA;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #FAFAFA;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #BDBDBD;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #FAFAFA !important;
+    }
+    
+    /* Text */
+    p, span, div {
+        color: #FAFAFA;
+    }
+    
+    /* Cards/containers */
+    div[data-testid="stVerticalBlock"] > div {
+        background-color: #1E1E1E;
+    }
+    
+    /* Input fields */
+    input, textarea, select {
+        background-color: #262730 !important;
+        color: #FAFAFA !important;
+        border: 1px solid #4A4A4A !important;
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background-color: #800020;
+        color: #FFFFFF;
+        border: none;
+    }
+    
+    .stButton > button:hover {
+        background-color: #A00028;
+    }
+    
+    /* Dataframes */
+    .dataframe {
+        background-color: #1E1E1E !important;
+        color: #FAFAFA !important;
+    }
+    
+    .dataframe thead th {
+        background-color: #262730 !important;
+        color: #FAFAFA !important;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: #262730;
+        color: #FAFAFA;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #262730;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #FAFAFA;
+    }
+    
+    /* Success/Info/Warning boxes */
+    .stSuccess {
+        background-color: #1B4332;
+        color: #FAFAFA;
+    }
+    
+    .stInfo {
+        background-color: #1E3A5F;
+        color: #FAFAFA;
+    }
+    
+    .stWarning {
+        background-color: #5F3A1E;
+        color: #FAFAFA;
+    }
+    
+    .stError {
+        background-color: #5F1E1E;
+        color: #FAFAFA;
+    }
+    
+    /* Plotly charts background */
+    .js-plotly-plot .plotly {
+        background-color: transparent !important;
+    }
+</style>
+"""
 
-# Export COLORS for backward compatibility
-COLORS = get_colors()
+def apply_theme():
+    """Apply current theme CSS"""
+    init_theme()
+    theme = get_theme()
+    
+    if theme == "dark":
+        st.markdown(DARK_THEME, unsafe_allow_html=True)
+    else:
+        st.markdown(LIGHT_THEME, unsafe_allow_html=True)
 
-# Chart color schemes
-CHART_COLORS = {
-    'primary_gradient': ['#800020', '#A00028', '#C00030', '#E00038'],
-    'secondary_gradient': ['#FFD700', '#FFE44D', '#FFF199', '#FFFFE6'],
-    'mixed': ['#800020', '#4169E1', '#28A745', '#FFC107', '#DC3545'],
-    'performance': ['#DC3545', '#FFC107', '#28A745'],  # Red -> Yellow -> Green
-}
+def create_theme_toggle():
+    """Create theme toggle widget"""
+    init_theme()
+    
+    # Create toggle in sidebar
+    current_theme = get_theme()
+    
+    col1, col2 = st.sidebar.columns([3, 1])
+    
+    with col1:
+        st.sidebar.markdown("### 🎨 Theme")
+    
+    with col2:
+        # Toggle button
+        is_dark = st.sidebar.toggle(
+            "Dark",
+            value=(current_theme == "dark"),
+            key="theme_toggle",
+            help="Toggle between light and dark mode"
+        )
+        
+        # Update theme based on toggle
+        new_theme = "dark" if is_dark else "light"
+        
+        if new_theme != st.session_state.theme:
+            st.session_state.theme = new_theme
+            st.rerun()
 
 def get_plotly_theme():
-    """Returns Plotly theme configuration based on current mode"""
-    colors = get_colors()
+    """Get Plotly theme configuration based on current theme"""
+    theme = get_theme()
     
-    return {
-        'layout': {
-            'paper_bgcolor': colors['background'],
-            'plot_bgcolor': colors['background'],
-            'font': {
-                'family': 'Inter, sans-serif',
-                'color': colors['text']
-            },
-            'title': {
-                'font': {
-                    'size': 18,
-                    'color': colors['primary'],
-                    'family': 'Inter, sans-serif'
+    if theme == "dark":
+        return {
+            'layout': {
+                'paper_bgcolor': '#0E1117',
+                'plot_bgcolor': '#0E1117',
+                'font': {'color': '#FAFAFA'},
+                'xaxis': {
+                    'gridcolor': '#262730',
+                    'zerolinecolor': '#262730'
+                },
+                'yaxis': {
+                    'gridcolor': '#262730',
+                    'zerolinecolor': '#262730'
                 }
-            },
-            'xaxis': {
-                'gridcolor': colors['border'],
-                'linecolor': colors['border'],
-                'tickfont': {'color': colors['text']}
-            },
-            'yaxis': {
-                'gridcolor': colors['border'],
-                'linecolor': colors['border'],
-                'tickfont': {'color': colors['text']}
-            },
-            'colorway': CHART_COLORS['primary_gradient'],
-            'hovermode': 'closest',
-            'hoverlabel': {
-                'bgcolor': colors['background'],
-                'font': {'color': colors['text']}
-            },
-            'legend': {
-                'font': {'color': colors['text']}
             }
         }
-    }
+    else:
+        return {
+            'layout': {
+                'paper_bgcolor': '#FFFFFF',
+                'plot_bgcolor': '#FFFFFF',
+                'font': {'color': '#262730'},
+                'xaxis': {
+                    'gridcolor': '#E0E0E0',
+                    'zerolinecolor': '#E0E0E0'
+                },
+                'yaxis': {
+                    'gridcolor': '#E0E0E0',
+                    'zerolinecolor': '#E0E0E0'
+                }
+            }
+        }
 
-def apply_streamlit_theme():
-    """Returns CSS for Streamlit custom theming - static styles only"""
-    colors = get_colors()
+def get_chart_colors():
+    """Get chart colors based on current theme"""
+    theme = get_theme()
     
-    return f"""
-    <style>
-        /* KPI cards */
-        .kpi-card {{
-            background-color: {colors['white']};
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-left: 4px solid {colors['primary']};
-        }}
-        
-        /* Accent elements */
-        .accent-border {{
-            border-left: 4px solid {colors['accent']};
-        }}
-        
-        /* Metric containers */
-        [data-testid="stMetricValue"] {{
-            font-size: 2rem;
-            font-weight: 600;
-        }}
-        
-        /* Data tables */
-        .dataframe {{
-            border: 1px solid {colors['border']};
-            border-radius: 5px;
-        }}
-        
-        /* Remove Streamlit branding */
-        #MainMenu {{visibility: hidden;}}
-        footer {{visibility: hidden;}}
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {{
-            width: 10px;
-            height: 10px;
-        }}
-        
-        ::-webkit-scrollbar-track {{
-            background: {colors['secondary_bg']};
-        }}
-        
-        ::-webkit-scrollbar-thumb {{
-            background: {colors['primary']};
-            border-radius: 5px;
-        }}
-        
-        ::-webkit-scrollbar-thumb:hover {{
-            background: #600018;
-        }}
-    </style>
-    """
+    if theme == "dark":
+        return {
+            'primary': '#800020',
+            'secondary': '#FFD700',
+            'accent': '#4169E1',
+            'success': '#28A745',
+            'warning': '#FFC107',
+            'danger': '#DC3545',
+            'text': '#FAFAFA',
+            'background': '#0E1117'
+        }
+    else:
+        return {
+            'primary': '#800020',
+            'secondary': '#FFD700',
+            'accent': '#4169E1',
+            'success': '#28A745',
+            'warning': '#FFC107',
+            'danger': '#DC3545',
+            'text': '#262730',
+            'background': '#FFFFFF'
+        }
