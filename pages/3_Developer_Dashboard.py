@@ -9,6 +9,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from auth import require_auth, get_current_user
+from theme_toggle import apply_theme, create_theme_toggle
 from theme import apply_streamlit_theme, COLORS
 from db import get_db_manager
 from core.components import (
@@ -19,6 +20,9 @@ from core.utils import (
     format_number, format_percentage, format_duration
 )
 
+# Apply theme CSS (must be first)
+apply_theme()
+
 # Page config
 st.set_page_config(
     page_title="Developer Dashboard - MIND",
@@ -26,7 +30,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Apply theme
+# Apply custom theme
 st.markdown(apply_streamlit_theme(), unsafe_allow_html=True)
 
 # Require authentication
@@ -48,6 +52,11 @@ st.markdown("---")
 # FILTERS SECTION
 # ============================================================================
 
+# Theme toggle in sidebar
+with st.sidebar:
+    create_theme_toggle()
+
+st.markdown("---")
 st.markdown("### 🔧 Filters")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -238,7 +247,6 @@ st.markdown("### 📈 API Performance Analytics")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("#### ⚡ Latency by API Service")
     
     latency_query = f"""
     SELECT 
@@ -271,7 +279,6 @@ with col1:
         st.info("No latency data available")
 
 with col2:
-    st.markdown("#### 🚨 Error Rate by API Service")
     
     error_query = f"""
     SELECT 
@@ -306,7 +313,6 @@ with col2:
 col3, col4 = st.columns(2)
 
 with col3:
-    st.markdown("#### 📍 Performance by Location")
     
     location_query = f"""
     SELECT 
@@ -339,7 +345,6 @@ with col3:
         st.info("No location data available")
 
 with col4:
-    st.markdown("#### ⚠️ Incidents by Severity")
     
     severity_query = f"""
     SELECT 
@@ -426,7 +431,6 @@ st.markdown("### 🌍 Environment Quality Analysis")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("#### 🔊 Noise Level Distribution")
     
     noise_query = """
     SELECT 
@@ -473,7 +477,6 @@ with col1:
         st.info("No noise data available")
 
 with col2:
-    st.markdown("#### 📶 Internet Stability by Device")
     
     device_query = """
     SELECT 
@@ -507,7 +510,6 @@ with col2:
 col5, col6 = st.columns(2)
 
 with col5:
-    st.markdown("#### 🔌 Connection Drops Analysis")
     
     drops_query = """
     SELECT 
@@ -554,7 +556,6 @@ with col5:
         st.info("No connection drop data available")
 
 with col6:
-    st.markdown("#### 📡 Signal Strength Distribution")
     
     signal_query = """
     SELECT 
