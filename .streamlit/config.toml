@@ -7,6 +7,15 @@ secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730"
 font = "sans serif"
 
+
+base = "dark"
+primaryColor = "#800020"
+backgroundColor = "#000000"          # Dark background
+secondaryBackgroundColor = "#262730"  # Secondary dark
+textColor = "#FAFAFA"                # Light text
+
+
+
 [server]
 headless = true
 enableCORS = false
